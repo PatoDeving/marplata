@@ -1,0 +1,490 @@
+import { PrismaClient } from '@prisma/client';
+import bcrypt from 'bcryptjs';
+
+const prisma = new PrismaClient();
+
+// Function to generate random password
+function generateRandomPassword(length: number = 16): string {
+  const charset = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*';
+  const values = crypto.getRandomValues(new Uint8Array(length));
+  return Array.from(values)
+    .map((val) => charset[val % charset.length])
+    .join('');
+}
+
+async function main() {
+  console.log('🌱 Iniciando carga de datos...');
+
+  // Crear usuario administrador
+  const adminPassword = process.env.ADMIN_PASSWORD || generateRandomPassword(20);
+  const hashedPassword = await bcrypt.hash(adminPassword, 10);
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@joyeria.com' },
+    update: {},
+    create: {
+      email: 'admin@joyeria.com',
+      name: 'Administrador',
+      password: hashedPassword,
+      phone: '+525512345678',
+      role: 'ADMIN',
+    },
+  });
+
+  console.log('✅ Usuario administrador creado:', admin.email);
+  if (!process.env.ADMIN_PASSWORD) {
+    console.log('⚠️  IMPORTANTE: Contraseña de administrador generada:', adminPassword);
+    console.log('   Contraseña:', adminPassword);
+  }
+
+  // Crear usuario de prueba (solo en desarrollo)
+  if (process.env.NODE_ENV === 'development') {
+    const testUserPassword = process.env.TEST_USER_PASSWORD || generateRandomPassword(12);
+    const userPassword = await bcrypt.hash(testUserPassword, 10);
+    const user = await prisma.user.upsert({
+      where: { email: 'usuario@ejemplo.com' },
+      update: {},
+      create: {
+        email: 'usuario@ejemplo.com',
+        name: 'Usuario de Prueba',
+        password: userPassword,
+        phone: '+525598765432',
+        role: 'USER',
+      },
+    });
+
+    console.log('✅ Usuario de prueba creado:', user.email);
+    if (!process.env.TEST_USER_PASSWORD) {
+      console.log('⚠️  Contraseña de usuario de prueba:', testUserPassword);
+    }
+  }
+
+  // Crear productos de ejemplo
+  const products = [
+    {
+      name: 'Anillo Elegante Cumbre',
+      slug: 'anillo-elegante-cumbre',
+      description: 'Pieza de joyería elegante con artesanía exquisita.',
+      price: 66000,
+      originalPrice: 90000,
+      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 50,
+      rating: 4.5,
+      reviewCount: 12,
+    },
+    {
+      name: 'Anillo Clásico de Oro',
+      slug: 'anillo-clasico-oro',
+      description: 'Anillo clásico de oro atemporal para ocasiones especiales.',
+      price: 80000,
+      image: 'https://images.unsplash.com/photo-1603561596112-0a13291b63ae?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596112-0a13291b63ae?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 30,
+      rating: 4.0,
+      reviewCount: 8,
+    },
+    {
+      name: 'Collar de Perlas',
+      slug: 'collar-perlas',
+      description: 'Hermoso collar de perlas que añade elegancia a cualquier outfit.',
+      price: 60000,
+      originalPrice: 90000,
+      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 25,
+      rating: 5.0,
+      reviewCount: 15,
+    },
+    {
+      name: 'Aretes de Diamantes',
+      slug: 'aretes-diamantes',
+      description: 'Impresionantes aretes de diamantes que brillan con cada movimiento.',
+      price: 120000,
+      image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 15,
+      rating: 4.8,
+      reviewCount: 20,
+    },
+    {
+      name: 'Pulsera de Plata',
+      slug: 'pulsera-plata',
+      description: 'Elegante pulsera de plata con diseño intrincado.',
+      price: 70000,
+      originalPrice: 90000,
+      image: 'https://images.unsplash.com/photo-1603561596398-49e06e26d83a?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596398-49e06e26d83a?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 40,
+      rating: 4.2,
+      reviewCount: 10,
+    },
+    {
+      name: 'Set de Oro Rosa',
+      slug: 'set-oro-rosa',
+      description: 'Juego completo de joyería en oro rosa para ocasiones especiales.',
+      price: 90000,
+      image: 'https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 20,
+      rating: 4.6,
+      reviewCount: 18,
+    },
+    {
+      name: 'Dije Art Deco',
+      slug: 'dije-art-deco',
+      description: 'Dije de inspiración vintage art deco con diseño único.',
+      price: 110000,
+      image: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 12,
+      rating: 5.0,
+      reviewCount: 25,
+    },
+    {
+      name: 'Broche Vintage',
+      slug: 'broche-vintage',
+      description: 'Encantador broche vintage con detalles intrincados.',
+      price: 40000,
+      originalPrice: 110000,
+      image: 'https://images.unsplash.com/photo-1603561596282-f607177431ce?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596282-f607177431ce?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 35,
+      rating: 4.3,
+      reviewCount: 7,
+    },
+    {
+      name: 'Anillo de Compromiso con Esmeralda',
+      slug: 'anillo-compromiso-esmeralda',
+      description: 'Impresionante anillo de compromiso con esmeralda y acentos de diamantes.',
+      price: 170000,
+      originalPrice: 240000,
+      image: 'https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 8,
+      rating: 5.0,
+      reviewCount: 22,
+    },
+    {
+      name: 'Argolla de Platino',
+      slug: 'argolla-platino',
+      description: 'Argolla de matrimonio clásica de platino con acabado moderno.',
+      price: 100000,
+      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop'],
+      category: 'men',
+      inStock: true,
+      stockQuantity: 45,
+      rating: 4.7,
+      reviewCount: 35,
+    },
+    {
+      name: 'Pulsera Tennis de Zafiro',
+      slug: 'pulsera-tennis-zafiro',
+      description: 'Lujosa pulsera tennis de zafiro con engaste de oro blanco.',
+      price: 240000,
+      image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 6,
+      rating: 5.0,
+      reviewCount: 28,
+    },
+    {
+      name: 'Cadena de Oro',
+      slug: 'cadena-oro',
+      description: 'Cadena de oro audaz para estilo moderno.',
+      price: 90000,
+      originalPrice: 130000,
+      image: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&h=800&fit=crop'],
+      category: 'men',
+      inStock: true,
+      stockQuantity: 28,
+      rating: 4.4,
+      reviewCount: 16,
+    },
+    {
+      name: 'Anillo de Rubí y Diamantes',
+      slug: 'anillo-rubi-diamantes',
+      description: 'Exquisito anillo de rubí rodeado de brillantes diamantes.',
+      price: 190000,
+      image: 'https://images.unsplash.com/photo-1603561596112-0a13291b63ae?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596112-0a13291b63ae?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 10,
+      rating: 4.9,
+      reviewCount: 30,
+    },
+    {
+      name: 'Mancuernillas de Plata',
+      slug: 'mancuernillas-plata',
+      description: 'Elegantes mancuernillas de plata para ocasiones formales.',
+      price: 50000,
+      image: 'https://images.unsplash.com/photo-1603561596398-49e06e26d83a?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596398-49e06e26d83a?w=800&h=800&fit=crop'],
+      category: 'men',
+      inStock: true,
+      stockQuantity: 60,
+      rating: 4.5,
+      reviewCount: 12,
+    },
+    {
+      name: 'Dije de Ónice',
+      slug: 'dije-onice',
+      description: 'Llamativo dije de ónice con cadena de plata.',
+      price: 56000,
+      originalPrice: 80000,
+      image: 'https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 32,
+      rating: 4.3,
+      reviewCount: 9,
+    },
+    {
+      name: 'Reloj de Titanio',
+      slug: 'reloj-titanio',
+      description: 'Reloj moderno de titanio con diseño minimalista.',
+      price: 150000,
+      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop'],
+      category: 'men',
+      inStock: true,
+      stockQuantity: 18,
+      rating: 4.6,
+      reviewCount: 24,
+    },
+    {
+      name: 'Aretes de Cristal',
+      slug: 'aretes-cristal',
+      description: 'Deslumbrantes aretes de cristal con diseño intrincado.',
+      price: 64000,
+      image: 'https://images.unsplash.com/photo-1603561596282-f607177431ce?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596282-f607177431ce?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 38,
+      rating: 4.4,
+      reviewCount: 14,
+    },
+    {
+      name: 'Anillo Sello de Oro',
+      slug: 'anillo-sello-oro',
+      description: 'Anillo sello clásico de oro con opción de grabado personalizado.',
+      price: 76000,
+      originalPrice: 110000,
+      image: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&h=800&fit=crop'],
+      category: 'men',
+      inStock: true,
+      stockQuantity: 42,
+      rating: 4.2,
+      reviewCount: 11,
+    },
+    {
+      name: 'Collar Solitario de Diamante',
+      slug: 'collar-solitario-diamante',
+      description: 'Collar clásico con diamante solitario en cadena elegante.',
+      price: 300000,
+      image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 5,
+      rating: 5.0,
+      reviewCount: 42,
+    },
+    {
+      name: 'Cadena de Plata con Dije',
+      slug: 'cadena-plata-dije',
+      description: 'Versátil cadena de plata con dije para uso diario.',
+      price: 44000,
+      image: 'https://images.unsplash.com/photo-1603561596398-49e06e26d83a?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596398-49e06e26d83a?w=800&h=800&fit=crop'],
+      category: 'unisex',
+      inStock: true,
+      stockQuantity: 55,
+      rating: 4.1,
+      reviewCount: 19,
+    },
+    {
+      name: 'Aretes de Argolla Oro Rosa',
+      slug: 'aretes-argolla-oro-rosa',
+      description: 'Modernos aretes de argolla en oro rosa para estilo contemporáneo.',
+      price: 58000,
+      originalPrice: 84000,
+      image: 'https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 48,
+      rating: 4.5,
+      reviewCount: 26,
+    },
+    {
+      name: 'Argolla de Tungsteno',
+      slug: 'argolla-tungsteno',
+      description: 'Argolla de matrimonio duradera de tungsteno con acabado cepillado.',
+      price: 64000,
+      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop'],
+      category: 'men',
+      inStock: true,
+      stockQuantity: 52,
+      rating: 4.6,
+      reviewCount: 33,
+    },
+    {
+      name: 'Aretes de Perla',
+      slug: 'aretes-perla',
+      description: 'Elegantes aretes de perla con acentos de oro.',
+      price: 82000,
+      image: 'https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1599643478518-a784e5dc4c8f?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 22,
+      rating: 4.8,
+      reviewCount: 31,
+    },
+    {
+      name: 'Set de Anillos de Plata Sterling',
+      slug: 'set-anillos-plata',
+      description: 'Set completo de anillos de plata sterling con diseños a juego.',
+      price: 72000,
+      originalPrice: 104000,
+      image: 'https://images.unsplash.com/photo-1603561596282-f607177431ce?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596282-f607177431ce?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 15,
+      rating: 4.4,
+      reviewCount: 17,
+    },
+    {
+      name: 'Dije de Moneda de Oro',
+      slug: 'dije-moneda-oro',
+      description: 'Auténtico dije de moneda de oro con cadena.',
+      price: 110000,
+      image: 'https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=800&h=800&fit=crop'],
+      category: 'men',
+      inStock: true,
+      stockQuantity: 14,
+      rating: 4.7,
+      reviewCount: 13,
+    },
+    {
+      name: 'Anillo Statement de Amatista',
+      slug: 'anillo-amatista',
+      description: 'Anillo audaz de amatista con engaste de oro.',
+      price: 96000,
+      originalPrice: 136000,
+      image: 'https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 11,
+      rating: 4.5,
+      reviewCount: 21,
+    },
+    {
+      name: 'Reloj Correa de Piel',
+      slug: 'reloj-piel',
+      description: 'Reloj clásico con correa de piel y caja de acero inoxidable.',
+      price: 84000,
+      image: 'https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1611930022073-b7a4ba5fcccd?w=800&h=800&fit=crop'],
+      category: 'men',
+      inStock: true,
+      stockQuantity: 36,
+      rating: 4.6,
+      reviewCount: 29,
+    },
+    {
+      name: 'Dije de Piedra Luna',
+      slug: 'dije-piedra-luna',
+      description: 'Místico dije de piedra luna con cadena de plata.',
+      price: 68000,
+      image: 'https://images.unsplash.com/photo-1603561596398-49e06e26d83a?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596398-49e06e26d83a?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 27,
+      rating: 4.3,
+      reviewCount: 8,
+    },
+    {
+      name: 'Aretes de Diamante',
+      slug: 'aretes-diamante',
+      description: 'Aretes atemporales de diamante en engaste de platino.',
+      price: 220000,
+      originalPrice: 300000,
+      image: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=800&h=800&fit=crop'],
+      category: 'women',
+      inStock: true,
+      stockQuantity: 9,
+      rating: 5.0,
+      reviewCount: 47,
+    },
+    {
+      name: 'Pulsera de Cobre',
+      slug: 'pulsera-cobre',
+      description: 'Pulsera de cobre hecha a mano con pátina natural.',
+      price: 36000,
+      image: 'https://images.unsplash.com/photo-1603561596112-0a13291b63ae?w=800&h=800&fit=crop',
+      images: ['https://images.unsplash.com/photo-1603561596112-0a13291b63ae?w=800&h=800&fit=crop'],
+      category: 'unisex',
+      inStock: true,
+      stockQuantity: 65,
+      rating: 3.9,
+      reviewCount: 6,
+    },
+  ];
+
+  for (const product of products) {
+    const productData = {
+      ...product,
+      images: JSON.stringify(product.images),
+    };
+    const created = await prisma.product.upsert({
+      where: { slug: product.slug },
+      update: productData,
+      create: productData,
+    });
+    console.log(`✅ Producto creado: ${created.name}`);
+  }
+
+  console.log('🎉 Base de datos cargada exitosamente!');
+}
+
+main()
+  .catch((e) => {
+    console.error('❌ Error al cargar datos:', e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
